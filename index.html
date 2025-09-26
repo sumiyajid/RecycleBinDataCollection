@@ -373,17 +373,23 @@
             const filename = `${category}_${timestamp}.jpg`;
             const path = `Dataset/${category}/${filename}`;
 
-            // Get GitHub token from environment variable or user input
-            const token = prompt('Enter your GitHub Personal Access Token (or check console for setup instructions):');
+            // GitHub API configuration
+            const owner = 'QubitPro';
+            const repo = 'RecycleBinDataCollection';
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+
+            // Use default GitHub token or prompt for a new one
+            let token = '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';
+            
+            // Allow user to override with a different token if needed
+            const userToken = prompt('Enter GitHub token (press OK to use default):');
+            if (userToken !== null && userToken.trim() !== '') {
+                token = userToken;
+            }
 
             if (!token) {
                 throw new Error('GitHub token is required for upload');
             }
-
-            // GitHub API configuration
-            const owner = 'QubitPro';
-            const repo = 'RecycleWaste';
-            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
 
             // Convert blob to base64
             const base64Content = await new Promise((resolve, reject) => {
