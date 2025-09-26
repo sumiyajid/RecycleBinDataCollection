@@ -391,6 +391,25 @@
                 throw new Error('GitHub token is required for upload');
             }
 
+            // First, let's verify the token works by checking user info
+            try {
+                const userResponse = await fetch('https://api.github.com/user', {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!userResponse.ok) {
+                    throw new Error('Token is invalid or expired');
+                }
+                
+                const userData = await userResponse.json();
+                console.log('Authenticated as:', userData.login);
+            } catch (error) {
+                throw new Error(`Authentication failed: ${error.message}`);
+            }
+
             // Convert blob to base64
             const base64Content = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -436,6 +455,7 @@
 
             if (!uploadResponse.ok) {
                 const errorData = await uploadResponse.json();
+                console.error('GitHub API Error:', errorData);
                 throw new Error(`GitHub API error: ${errorData.message || 'Unknown error'}`);
             }
 
