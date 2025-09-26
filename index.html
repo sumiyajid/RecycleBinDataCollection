@@ -363,104 +363,83 @@
             updateSendButton();
         }
 
+        async function getDefaultBranch(repo, token) {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${repo}`, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.default_branch || 'main';
+                }
+                return 'main'; // fallback
+            } catch (error) {
+                console.warn('Could not detect default branch, using main:', error);
+                return 'main';
+            }
+        }
+
         async function uploadToGitHub(imageData, category) {
-            // Convert base64 to blob
-            const response = await fetch(imageData);
-            const blob = await response.blob();
+            // GitHub API configuration
+            const token = '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';
+            const repo = 'QubitPro/RecycleBinDataCollection';
+            const folderPath = 'Dataset';
+            
+            // Use the default token without prompting
+            const finalToken = token;
+
+            if (!finalToken) {
+                throw new Error('GitHub token is required for upload');
+            }
+
+            // Get the repository's default branch
+            const defaultBranch = await getDefaultBranch(repo, finalToken);
+
+            // Security: Validate and sanitize category
+            const allowedCategories = ['cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash'];
+            if (!allowedCategories.includes(category)) {
+                throw new Error('Invalid category for upload');
+            }
 
             // Create filename with timestamp
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const filename = `${category}_${timestamp}.jpg`;
-            const path = `Dataset/${category}/${filename}`;
-
-            // GitHub API configuration
-            const owner = 'QubitPro';
-            const repo = 'RecycleBinDataCollection';
-            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-
-            // Use default GitHub token or prompt for a new one
-            let token = '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';
             
-            // Allow user to override with a different token if needed
-            const userToken = prompt('Enter GitHub token (press OK to use default):');
-            if (userToken !== null && userToken.trim() !== '') {
-                token = userToken;
-            }
+            // Ensure path is within allowed directory structure
+            const sanitizedPath = folderPath.replace(/[^a-zA-Z0-9\/\-_]/g, '');
+            const imagePath = `${sanitizedPath}/${category}/${filename}`;
 
-            if (!token) {
-                throw new Error('GitHub token is required for upload');
-            }
-
-            // First, let's verify the token works by checking user info
-            try {
-                const userResponse = await fetch('https://api.github.com/user', {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
-                if (!userResponse.ok) {
-                    throw new Error('Token is invalid or expired');
-                }
-                
-                const userData = await userResponse.json();
-                console.log('Authenticated as:', userData.login);
-            } catch (error) {
-                throw new Error(`Authentication failed: ${error.message}`);
-            }
-
-            // Convert blob to base64
-            const base64Content = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64 = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
-                    resolve(base64);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-
-            // Check if file already exists (to get SHA if needed)
-            let sha = null;
-            try {
-                const existingFile = await fetch(apiUrl, {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                if (existingFile.ok) {
-                    const existingData = await existingFile.json();
-                    sha = existingData.sha;
-                }
-            } catch (error) {
-                // File doesn't exist, which is fine
-            }
-
-            // Upload to GitHub
-            const uploadResponse = await fetch(apiUrl, {
+            // Convert data URL to base64
+            const base64Data = imageData.split(',')[1];
+            
+            // Upload image with restricted path
+            const imageResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${imagePath}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `token ${token}`,
+                    'Authorization': `token ${finalToken}`,
                     'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
                 },
                 body: JSON.stringify({
-                    message: `Add ${category} waste image - ${timestamp}`,
-                    content: base64Content,
-                    sha: sha // Include SHA if updating existing file
+                    message: `Add ${category} waste image: ${timestamp}`,
+                    content: base64Data,
+                    branch: defaultBranch,
+                    committer: {
+                        name: 'Waste Dataset Collector',
+                        email: 'dataset-collector@example.com'
+                    }
                 })
             });
 
-            if (!uploadResponse.ok) {
-                const errorData = await uploadResponse.json();
-                console.error('GitHub API Error:', errorData);
-                throw new Error(`GitHub API error: ${errorData.message || 'Unknown error'}`);
+            if (!imageResponse.ok) {
+                const error = await imageResponse.json();
+                console.error('GitHub API Error:', error);
+                throw new Error(error.message || 'GitHub image upload failed');
             }
 
-            const result = await uploadResponse.json();
+            const result = await imageResponse.json();
             console.log('File uploaded successfully:', result.download_url);
+            return result;
         }
 
         // Handle page unload to stop camera
