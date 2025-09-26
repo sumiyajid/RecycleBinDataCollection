@@ -141,6 +141,44 @@
             cursor: not-allowed;
         }
 
+        .auto-upload-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: #ccc;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(25px);
+        }
+
         .preview-section {
             text-align: center;
             margin-bottom: 20px;
@@ -180,6 +218,78 @@
             display: none;
         }
 
+        .upload-history {
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .upload-history h3 {
+            color: #2E7D32;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        #uploadList {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+
+        .upload-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .upload-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .upload-info {
+            flex: 1;
+        }
+
+        .upload-category {
+            font-weight: bold;
+            color: #2E7D32;
+        }
+
+        .upload-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .upload-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .upload-status.success {
+            background: #4CAF50;
+        }
+
+        .upload-status.error {
+            background: #f44336;
+        }
+
+        .no-uploads {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 20px;
@@ -191,6 +301,15 @@
 
             .category-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .upload-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .upload-status {
+                margin-top: 5px;
             }
         }
     </style>
@@ -243,17 +362,31 @@
             <img id="photoPreview" class="hidden" alt="Captured photo preview">
         </div>
 
+        <div class="auto-upload-section">
+            <label>Auto-upload after capture:</label>
+            <div class="toggle-switch" id="autoUploadToggle"></div>
+        </div>
+
         <div class="button-group">
             <button id="sendData" disabled>Send to Dataset</button>
         </div>
 
         <div id="status"></div>
+
+        <div class="upload-history">
+            <h3>Recent Uploads</h3>
+            <div id="uploadList">
+                <p class="no-uploads">No uploads yet</p>
+            </div>
+        </div>
     </div>
 
     <script>
         let stream = null;
         let capturedImageData = null;
         let selectedCategory = null;
+        let autoUpload = false;
+        let uploadHistory = JSON.parse(localStorage.getItem('uploadHistory')) || [];
 
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
@@ -262,6 +395,8 @@
         const capturePhotoBtn = document.getElementById('capturePhoto');
         const sendDataBtn = document.getElementById('sendData');
         const statusDiv = document.getElementById('status');
+        const autoUploadToggle = document.getElementById('autoUploadToggle');
+        const uploadList = document.getElementById('uploadList');
         const ctx = canvas.getContext('2d');
 
         // Category selection handling
@@ -281,6 +416,23 @@
                 updateSendButton();
             });
         });
+
+        // Auto-upload toggle functionality
+        autoUploadToggle.addEventListener('click', () => {
+            autoUpload = !autoUpload;
+            autoUploadToggle.classList.toggle('active', autoUpload);
+            localStorage.setItem('autoUpload', JSON.stringify(autoUpload));
+        });
+
+        // Initialize auto-upload toggle state
+        const savedAutoUpload = JSON.parse(localStorage.getItem('autoUpload'));
+        if (savedAutoUpload !== null) {
+            autoUpload = savedAutoUpload;
+            autoUploadToggle.classList.toggle('active', autoUpload);
+        }
+
+        // Initialize upload history display
+        updateUploadHistory();
 
         // Camera functionality
         startCameraBtn.addEventListener('click', async () => {
@@ -314,6 +466,13 @@
 
             updateSendButton();
             showStatus('Photo captured! Ready to send.', 'success');
+
+            // If auto-upload is enabled, automatically upload the photo
+            if (autoUpload && capturedImageData && selectedCategory) {
+                setTimeout(() => {
+                    sendDataBtn.click();
+                }, 1000); // Small delay to show the captured photo first
+            }
         });
 
         sendDataBtn.addEventListener('click', async () => {
@@ -326,12 +485,48 @@
             sendDataBtn.textContent = 'Uploading...';
 
             try {
-                await uploadToGitHub(capturedImageData, selectedCategory);
+                const result = await uploadToGitHub(capturedImageData, selectedCategory);
                 showStatus('Photo successfully uploaded to GitHub dataset!', 'success');
+                
+                // Add to upload history
+                const uploadRecord = {
+                    id: Date.now(),
+                    category: selectedCategory,
+                    timestamp: new Date().toISOString(),
+                    status: 'success',
+                    downloadUrl: result.download_url
+                };
+                
+                uploadHistory.unshift(uploadRecord); // Add to beginning of array
+                if (uploadHistory.length > 10) {
+                    uploadHistory = uploadHistory.slice(0, 10); // Keep only last 10 uploads
+                }
+                
+                localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
+                updateUploadHistory();
+                
                 resetForNextPhoto();
             } catch (error) {
                 console.error('Upload error:', error);
                 showStatus(`Upload failed: ${error.message}`, 'error');
+                
+                // Add failed upload to history
+                const uploadRecord = {
+                    id: Date.now(),
+                    category: selectedCategory,
+                    timestamp: new Date().toISOString(),
+                    status: 'error',
+                    error: error.message
+                };
+                
+                uploadHistory.unshift(uploadRecord);
+                if (uploadHistory.length > 10) {
+                    uploadHistory = uploadHistory.slice(0, 10);
+                }
+                
+                localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
+                updateUploadHistory();
+                
                 sendDataBtn.disabled = false;
                 sendDataBtn.textContent = 'Send to Dataset';
             }
@@ -361,6 +556,43 @@
             sendDataBtn.disabled = false;
             sendDataBtn.textContent = 'Send to Dataset';
             updateSendButton();
+        }
+
+        function updateUploadHistory() {
+            if (uploadHistory.length === 0) {
+                uploadList.innerHTML = '<p class="no-uploads">No uploads yet</p>';
+                return;
+            }
+
+            uploadList.innerHTML = '';
+            uploadHistory.forEach(upload => {
+                const uploadItem = document.createElement('div');
+                uploadItem.className = 'upload-item';
+                
+                const uploadInfo = document.createElement('div');
+                uploadInfo.className = 'upload-info';
+                
+                const uploadCategory = document.createElement('div');
+                uploadCategory.className = 'upload-category';
+                uploadCategory.textContent = upload.category.charAt(0).toUpperCase() + upload.category.slice(1);
+                
+                const uploadTime = document.createElement('div');
+                uploadTime.className = 'upload-time';
+                const date = new Date(upload.timestamp);
+                uploadTime.textContent = date.toLocaleString();
+                
+                uploadInfo.appendChild(uploadCategory);
+                uploadInfo.appendChild(uploadTime);
+                
+                const uploadStatus = document.createElement('div');
+                uploadStatus.className = `upload-status ${upload.status}`;
+                uploadStatus.textContent = upload.status === 'success' ? '✓ Success' : '✗ Failed';
+                
+                uploadItem.appendChild(uploadInfo);
+                uploadItem.appendChild(uploadStatus);
+                
+                uploadList.appendChild(uploadItem);
+            });
         }
 
         async function getDefaultBranch(repo, token) {
