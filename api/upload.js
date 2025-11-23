@@ -1,144 +1,140 @@
-// api/upload.js
-// Vercel serverless function to accept an image and commit it to a GitHub repo
-// IMPORTANT: Put secrets (GITHUB_TOKEN, REPO, API_KEY, ALLOWED_ORIGIN) in Vercel Environment Variables
+// api/upload.js - Vercel Serverless upload handler (Busboy + optional S3)
+// Requirements: npm install busboy aws-sdk uuid
+// Env vars to set in Vercel: API_KEY, (optional) AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME
 
-export const config = {
-  api: {
-    bodyParser: false // we use multer to parse multipart/form-data
-  }
-};
+const Busboy = require('busboy');
+const AWS = require('aws-sdk');
+const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
-import multer from "multer";
-import Cors from "cors";
-import path from "path";
+const API_KEY = process.env.API_KEY || ''; // set this in Vercel dashboard
+const S3_BUCKET = process.env.S3_BUCKET_NAME || null;
+const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
-// CORS middleware helper
-function runMiddleware(req, res, fn) {
+let s3 = null;
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && S3_BUCKET) {
+  AWS.config.update({ region: AWS_REGION });
+  s3 = new AWS.S3();
+}
+
+/**
+ * Helper: stream -> buffer
+ * but we intentionally collect buffers for small images (typical upload ~ < 10MB).
+ */
+function collectFile(stream) {
   return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) return reject(result);
-      return resolve(result);
-    });
+    const chunks = [];
+    stream.on('data', (d) => chunks.push(d));
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
   });
 }
 
-// Configure CORS. Allowed origin is taken from env var ALLOWED_ORIGIN for security.
-const cors = Cors({
-  methods: ["POST"],
-  origin: process.env.ALLOWED_ORIGIN || "*" // set ALLOWED_ORIGIN in Vercel env (recommended)
-});
+function sendCorsOptions(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // tighten for production
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+  res.status(204).end();
+}
 
-// Multer memory storage (no files written to disk)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 6 * 1024 * 1024 } // 6 MB limit (adjust if needed)
-});
+module.exports = async (req, res) => {
+  // Simple CORS preflight handling
+  if (req.method === 'OPTIONS') return sendCorsOptions(res);
 
-const allowedCategories = new Set(["cardboard", "glass", "metal", "paper", "plastic", "trash"]);
+  // Only allow POST
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST, OPTIONS');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-export default async function handler(req, res) {
+  // API key validation
+  const key = (req.headers['x-api-key'] || '').toString();
+  if (!API_KEY || key !== API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized - missing or invalid x-api-key' });
+  }
+
+  // Quick sanity: ensure content-type is multipart
+  const contentType = req.headers['content-type'] || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return res.status(400).json({ error: 'Expected multipart/form-data' });
+  }
+
   try {
-    // Run CORS middleware first
-    await runMiddleware(req, res, cors);
+    const bb = Busboy({ headers: req.headers });
+    let fields = {};
+    let fileSaved = null;
 
-    if (req.method !== "POST") {
-      res.setHeader("Allow", "POST");
-      return res.status(405).json({ error: "Method not allowed" });
-    }
+    // we'll only accept the first file field named "image" (same name as your frontend)
+    bb.on('field', (fieldname, val) => {
+      // collect category and any other small metadata
+      fields[fieldname] = val;
+    });
 
-    // Simple API key check
-    const clientKey = req.headers["x-api-key"];
-    if (!clientKey || clientKey !== process.env.API_KEY) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    // file handler
+    bb.on('file', async (fieldname, fileStream, info) => {
+      const { filename: originalFilename, mimeType } = info;
+      // collect the file into memory (ok for typical images; if you expect huge files, stream to S3 directly)
+      const buffer = await collectFile(fileStream);
+      // Create a unique filename
+      const ext = path.extname(originalFilename) || '.jpg';
+      const safeCategory = (fields.category || 'unknown').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+      const filename = `${safeCategory}_${Date.now()}_${uuidv4()}${ext}`;
 
-    // Parse multipart/form-data with multer
+      if (s3) {
+        // Upload to S3
+        const params = {
+          Bucket: S3_BUCKET,
+          Key: filename,
+          Body: buffer,
+          ContentType: mimeType || 'application/octet-stream',
+          ACL: 'private' // change to 'public-read' if you want public URLs (consider security)
+        };
+        const s3res = await s3.upload(params).promise();
+        fileSaved = {
+          storage: 's3',
+          filename,
+          size: buffer.length,
+          mimeType,
+          s3Location: s3res.Location,
+          s3Key: s3res.Key
+        };
+      } else {
+        // Save to ephemeral /tmp (Vercel supports /tmp for functions)
+        const tmpPath = path.join(os.tmpdir(), filename);
+        await fs.promises.writeFile(tmpPath, buffer);
+        fileSaved = {
+          storage: 'tmp',
+          filename,
+          size: buffer.length,
+          mimeType,
+          tmpPath
+        };
+      }
+    });
+
+    // Wait until finished
     await new Promise((resolve, reject) => {
-      upload.single("image")(req, res, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
+      bb.on('finish', resolve);
+      bb.on('error', reject);
+      req.pipe(bb);
     });
 
-    // Validate category
-    const category = (req.body.category || "").toLowerCase();
-    if (!allowedCategories.has(category)) {
-      return res.status(400).json({ error: "Invalid category" });
-    }
+    if (!fileSaved) return res.status(400).json({ error: 'No file uploaded' });
 
-    // Validate file
-    if (!req.file || !req.file.buffer || !req.file.mimetype) {
-      return res.status(400).json({ error: "No image file uploaded" });
-    }
-    if (!req.file.mimetype.startsWith("image/")) {
-      return res.status(400).json({ error: "Uploaded file is not an image" });
-    }
-
-    // Build filename and path
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const extFromMime = (req.file.mimetype.split("/")[1] || "jpg").split("+")[0];
-    const filename = `${category}_${timestamp}.${extFromMime}`;
-    const repoFolder = `Dataset/${category}`;
-    const filePath = path.posix.join(repoFolder, filename); // e.g. Dataset/plastic/plastic_2025-11-23T...
-
-    // Convert buffer to base64
-    const base64Content = req.file.buffer.toString("base64");
-
-    // GitHub API: get default branch
-    const repo = process.env.REPO;
-    if (!repo) {
-      return res.status(500).json({ error: "Server misconfiguration: REPO not set" });
-    }
-    if (!process.env.GITHUB_TOKEN) {
-      return res.status(500).json({ error: "Server misconfiguration: GITHUB_TOKEN not set" });
-    }
-
-    const repoResp = await fetch(`https://api.github.com/repos/${repo}`, {
-      headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` }
-    });
-
-    if (!repoResp.ok) {
-      const txt = await repoResp.text();
-      return res.status(500).json({ error: `Failed to get repo info: ${repoResp.status} ${txt}` });
-    }
-    const repoJson = await repoResp.json();
-    const branch = repoJson.default_branch || "main";
-
-    // Put file into repo
-    const putUrl = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(filePath)}`;
-    const commitMessage = `Add ${category} image ${filename}`;
-    const putResp = await fetch(putUrl, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-        "User-Agent": "recycle-dataset-uploader"
-      },
-      body: JSON.stringify({
-        message: commitMessage,
-        content: base64Content,
-        branch
-      })
-    });
-
-    const putJson = await putResp.json();
-    if (!putResp.ok) {
-      // putJson often contains {message, documentation_url, errors}
-      return res.status(500).json({ error: putJson.message || "GitHub upload failed", details: putJson.errors || null });
-    }
-
-    // Success
-    return res.status(200).json({
+    // Response
+    // Add headers for CORS (for quick testing). In production, restrict origin.
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.json({
       ok: true,
-      content: putJson.content,
-      commit: putJson.commit
+      category: fields.category || null,
+      meta: fileSaved
     });
 
   } catch (err) {
-    console.error("Upload error:", err);
-    return res.status(500).json({ error: err.message || "Server error" });
+    console.error('Upload handler error:', err);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(500).json({ error: 'Internal server error' });
   }
-}
+};
