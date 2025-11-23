@@ -133,7 +133,11 @@
 "; // correct endpoint on your domain
   const API_KEY = "ajf2j3f92jf923jf92jf9"; // <-- replace this string with your API key when testing
   // =========================================
-
+const resp = await fetch(UPLOAD_URL, {
+  method: "POST",
+  headers: { "x-api-key": API_KEY },
+  body: formData
+});
   // Variables
   let stream = null;
   let selectedCategory = null;
