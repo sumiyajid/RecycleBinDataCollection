@@ -1,9 +1,10 @@
 {
-  "name": "recyclebin-backend",
+  "name": "recycle-waste-collection",
   "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "multer": "^1.4.5-lts.1",
-    "cors": "^2.8.5"
+  "description": "Waste dataset collection app",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel"
   }
 }
