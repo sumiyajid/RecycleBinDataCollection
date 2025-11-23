@@ -308,4 +308,21 @@
       // selectedCategory = null;
       // updateSendButton();
 
-      consol
+      console.log('Upload result:', result);
+    } catch (err) {
+      console.error(err);
+      showStatus('Upload failed: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send to Dataset';
+    }
+  });
+
+  // Accessibility: enable Enter key on video for capture
+  video.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !captureBtn.disabled) captureBtn.click();
+  });
+
+</script>
+</body>
+</html>
