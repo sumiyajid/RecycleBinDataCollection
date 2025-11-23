@@ -1,97 +1,225 @@
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recycle Waste Dataset Collection</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 20px;
+            max-width: 480px;
+            width: 100%;
+        }
+        h1 { text-align: center; color: #2E7D32; margin-bottom: 20px; font-size: 20px; }
+        .category-selection { margin-bottom: 20px; }
+        .category-selection label {
+            display: block; margin-bottom: 10px; font-weight: bold; color: #333; font-size: 14px;
+        }
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .category-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+        .category-option:hover { border-color: #4CAF50; background-color: #f5f5f5; }
+        .category-option.selected { border-color: #4CAF50; background-color: #e8f5e8; }
+        .camera-section { text-align: center; margin-bottom: 20px; }
+        #video { width: 100%; aspect-ratio: 4/3; border: 2px solid #ddd; border-radius: 10px; object-fit: cover; }
+        button {
+            padding: 10px 20px; border: none; border-radius: 25px; font-size: 14px;
+            font-weight: bold; cursor: pointer; transition: 0.3s; min-width: 120px;
+        }
+        #startCamera { background: #4CAF50; color: white; }
+        #capturePhoto { background: #2196F3; color: white; }
+        #sendData { background: #FF9800; color: white; }
+        .button-group {
+            display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;
+        }
+        #photoPreview {
+            max-width: 100%; max-height: 200px; border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .status { text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Recycle Waste Dataset Collection</h1>
 
-import multer from "multer";
-import Cors from "cors";
+        <div class="category-selection">
+            <label>Select Waste Category:</label>
+            <div class="category-grid">
+                <div class="category-option" data-category="cardboard">
+                    <input type="radio" name="category"> 📦 Cardboard
+                </div>
+                <div class="category-option" data-category="glass">
+                    <input type="radio" name="category"> 🍶 Glass
+                </div>
+                <div class="category-option" data-category="metal">
+                    <input type="radio" name="category"> 🥫 Metal (Can)
+                </div>
+                <div class="category-option" data-category="paper">
+                    <input type="radio" name="category"> 📄 Paper
+                </div>
+                <div class="category-option" data-category="plastic">
+                    <input type="radio" name="category"> 🧴 Plastic Bottle
+                </div>
+                <div class="category-option" data-category="trash">
+                    <input type="radio" name="category"> 🗑 Organic Waste
+                </div>
+            </div>
+        </div>
 
-const cors = Cors({
-  methods: ["POST"],
-  origin: "*"
+        <div class="camera-section">
+            <video id="video" autoplay muted playsinline></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+        </div>
+
+        <div class="button-group">
+            <button id="startCamera">Start Camera</button>
+            <button id="capturePhoto" disabled>Capture Photo</button>
+        </div>
+
+        <img id="photoPreview" class="hidden">
+
+        <div class="button-group">
+            <button id="sendData" disabled>Send to Dataset</button>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+<script>
+let stream = null;
+let selectedCategory = null;
+let capturedImageData = null;
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const capturePhotoBtn = document.getElementById("capturePhoto");
+const sendDataBtn = document.getElementById("sendData");
+const photoPreview = document.getElementById("photoPreview");
+
+// CATEGORY SELECT
+document.querySelectorAll(".category-option").forEach(option => {
+    option.addEventListener("click", () => {
+        document.querySelectorAll(".category-option").forEach(o => o.classList.remove("selected"));
+        option.classList.add("selected");
+        selectedCategory = option.dataset.category;
+        updateSendButton();
+    });
 });
 
-function runMiddleware(req, res, fn) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) return reject(result);
-      return resolve(result);
-    });
-  });
-}
-
-const upload = multer({ storage: multer.memoryStorage() });
-
-export default async function handler(req, res) {
-  await runMiddleware(req, res, cors);
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const apiKey = req.headers["x-api-key"];
-  if (!apiKey || apiKey !== process.env.API_KEY) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  await new Promise((resolve, reject) => {
-    upload.single("image")(req, res, (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
-
-  const category = (req.body.category || "").toLowerCase();
-  const allowed = ["cardboard", "glass", "metal", "paper", "plastic", "trash"];
-  if (!allowed.includes(category)) {
-    return res.status(400).json({ error: "Invalid category" });
-  }
-
-  if (!req.file) return res.status(400).json({ error: "No image" });
-
-  const mime = req.file.mimetype;
-  if (!mime.startsWith("image/")) {
-    return res.status(400).json({ error: "Invalid image" });
-  }
-
-  const base64 = req.file.buffer.toString("base64");
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const ext = mime.split("/")[1];
-  const filename = `${category}_${timestamp}.${ext}`;
-
-  const path = `Dataset/${category}/${filename}`;
-
-  const repo = process.env.REPO; // "sumiyajid/RecycleBinDataCollection"
-
-  const branchResp = await fetch(`https://api.github.com/repos/${repo}`, {
-    headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` }
-  });
-
-  const repoData = await branchResp.json();
-  const branch = repoData.default_branch || "main";
-
-  const uploadResp = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: `Add ${category} image ${filename}`,
-        content: base64,
-        branch
-      })
+// START CAMERA
+document.getElementById("startCamera").onclick = async () => {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        capturePhotoBtn.disabled = false;
+        showStatus("Camera started!", "success");
+    } catch (err) {
+        showStatus("Camera error. Check permissions.", "error");
     }
-  );
+};
 
-  const result = await uploadResp.json();
+// CAPTURE PHOTO
+capturePhotoBtn.onclick = () => {
+    canvas.width = 512;
+    canvas.height = 384;
+    ctx.drawImage(video, 0, 0, 512, 384);
+    capturedImageData = canvas.toDataURL("image/jpeg", 0.8);
+    photoPreview.src = capturedImageData;
+    photoPreview.style.display = "block";
+    updateSendButton();
+    showStatus("Photo captured!", "success");
+};
 
-  if (!uploadResp.ok) {
-    return res.status(500).json({ error: result.message || "Upload failed" });
-  }
+// FRONTEND → BACKEND UPLOAD
+async function uploadToServer(imageDataUrl, category) {
+    const blob = dataURLtoBlob(imageDataUrl);
+    const form = new FormData();
+    form.append("image", blob, `${category}.jpg`);
+    form.append("category", category);
 
-  res.json({ ok: true, file: result.content });
+    const resp = await fetch("https://YOUR_VERCEL_URL/api/upload", {
+        method: "POST",
+        headers: { "x-api-key": "YOUR_API_KEY" },
+        body: form
+    });
+
+    if (!resp.ok) {
+        const err = await resp.json().catch(()=>({error:"Upload failed"}));
+        throw new Error(err.error || "Upload failed");
+    }
+    return resp.json();
 }
+
+function dataURLtoBlob(dataurl) {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8 = new Uint8Array(n);
+    while(n--) u8[n] = bstr.charCodeAt(n);
+    return new Blob([u8], {type:mime});
+}
+
+// SEND DATA
+sendDataBtn.onclick = async () => {
+    if (!capturedImageData || !selectedCategory) {
+        showStatus("Capture a photo and select a category.", "error");
+        return;
+    }
+    sendDataBtn.disabled = true;
+    sendDataBtn.textContent = "Uploading...";
+
+    try {
+        await uploadToServer(capturedImageData, selectedCategory);
+        showStatus("Uploaded to dataset!", "success");
+    } catch (err) {
+        showStatus("Upload failed: " + err.message, "error");
+    }
+
+    sendDataBtn.textContent = "Send to Dataset";
+    sendDataBtn.disabled = false;
+};
+
+// HELPER FUNCTIONS
+function updateSendButton() {
+    sendDataBtn.disabled = !(selectedCategory && capturedImageData);
+}
+
+function showStatus(msg, type) {
+    const s = document.getElementById("status");
+    s.className = "status " + type;
+    s.textContent = msg;
+}
+</script>
+
+</body>
+</html>
