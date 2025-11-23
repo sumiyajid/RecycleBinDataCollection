@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recycle Waste Dataset Collection</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #4CAF50, #45a049);
@@ -20,42 +15,24 @@
             align-items: center;
             padding: 10px;
         }
-
         .container {
             background: white;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             padding: 20px;
-            max-width: 100%;
-            width: 100%;
             max-width: 480px;
+            width: 100%;
         }
-
-        h1 {
-            text-align: center;
-            color: #2E7D32;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }
-
-        .category-selection {
-            margin-bottom: 20px;
-        }
-
+        h1 { text-align: center; color: #2E7D32; margin-bottom: 20px; font-size: 20px; }
+        .category-selection { margin-bottom: 20px; }
         .category-selection label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #333;
-            font-size: 14px;
+            display: block; margin-bottom: 10px; font-weight: bold; color: #333; font-size: 14px;
         }
-
         .category-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
         }
-
         .category-option {
             display: flex;
             align-items: center;
@@ -66,330 +43,27 @@
             transition: all 0.3s ease;
             font-size: 12px;
         }
-
-        .category-option:hover {
-            border-color: #4CAF50;
-            background-color: #f5f5f5;
-        }
-
-        .category-option input[type="radio"] {
-            margin-right: 6px;
-        }
-
-        .category-option.selected {
-            border-color: #4CAF50;
-            background-color: #e8f5e8;
-        }
-
-        .camera-section {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        #video {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            aspect-ratio: 4/3;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
+        .category-option:hover { border-color: #4CAF50; background-color: #f5f5f5; }
+        .category-option.selected { border-color: #4CAF50; background-color: #e8f5e8; }
+        .camera-section { text-align: center; margin-bottom: 20px; }
+        #video { width: 100%; aspect-ratio: 4/3; border: 2px solid #ddd; border-radius: 10px; object-fit: cover; }
         button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            flex: 1;
-            min-width: 120px;
+            padding: 10px 20px; border: none; border-radius: 25px; font-size: 14px;
+            font-weight: bold; cursor: pointer; transition: 0.3s; min-width: 120px;
         }
-
-        #startCamera {
-            background: #4CAF50;
-            color: white;
+        #startCamera { background: #4CAF50; color: white; }
+        #capturePhoto { background: #2196F3; color: white; }
+        #sendData { background: #FF9800; color: white; }
+        .button-group {
+            display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;
         }
-
-        #startCamera:hover {
-            background: #45a049;
-        }
-
-        #capturePhoto {
-            background: #2196F3;
-            color: white;
-        }
-
-        #capturePhoto:hover {
-            background: #1976D2;
-        }
-
-        #sendData {
-            background: #FF9800;
-            color: white;
-        }
-
-        #sendData:hover {
-            background: #F57C00;
-        }
-
-        #sendData:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .auto-upload-section {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-            gap: 10px;
-            font-size: 14px;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 45px;
-            height: 22px;
-            background: #ccc;
-            border-radius: 22px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .toggle-switch.active {
-            background: #4CAF50;
-        }
-
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 18px;
-            height: 18px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.3s;
-        }
-
-        .toggle-switch.active::after {
-            transform: translateX(23px);
-        }
-
-        .preview-section {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        #canvas {
-            display: none;
-        }
-
         #photoPreview {
-            max-width: 100%;
-            height: auto;
-            max-height: 200px;
-            border-radius: 10px;
+            max-width: 100%; max-height: 200px; border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-
-        .status {
-            text-align: center;
-            padding: 8px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-
-        .status.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .upload-history {
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        .upload-history h3 {
-            color: #2E7D32;
-            margin-bottom: 10px;
-            text-align: center;
-            font-size: 16px;
-        }
-
-        #uploadList {
-            max-height: 150px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 8px;
-            background: #f9f9f9;
-        }
-
-        .upload-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px;
-            margin-bottom: 6px;
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            font-size: 12px;
-        }
-
-        .upload-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .upload-info {
-            flex: 1;
-        }
-
-        .upload-category {
-            font-weight: bold;
-            color: #2E7D32;
-        }
-
-        .upload-time {
-            font-size: 11px;
-            color: #666;
-        }
-
-        .upload-status {
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            color: white;
-        }
-
-        .upload-status.success {
-            background: #4CAF50;
-        }
-
-        .upload-status.error {
-            background: #f44336;
-        }
-
-        .no-uploads {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 15px;
-            font-size: 12px;
-        }
-
-        /* Mobile specific adjustments */
-        @media (max-width: 480px) {
-            body {
-                padding: 5px;
-            }
-
-            .container {
-                padding: 15px;
-                border-radius: 10px;
-            }
-
-            h1 {
-                font-size: 18px;
-                margin-bottom: 15px;
-            }
-
-            .category-grid {
-                grid-template-columns: 1fr;
-                gap: 6px;
-            }
-
-            .category-option {
-                padding: 10px;
-                font-size: 14px;
-            }
-
-            #video {
-                border-radius: 8px;
-            }
-
-            button {
-                padding: 12px 16px;
-                font-size: 13px;
-                min-width: 100px;
-            }
-
-            .button-group {
-                gap: 6px;
-            }
-
-            .upload-item {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 8px;
-            }
-
-            .upload-status {
-                margin-top: 4px;
-                align-self: flex-end;
-            }
-
-            .auto-upload-section {
-                font-size: 13px;
-            }
-        }
-
-        /* Landscape mobile adjustments */
-        @media (max-width: 768px) and (orientation: landscape) {
-            .container {
-                max-width: 90%;
-            }
-
-            #video {
-                max-height: 250px;
-            }
-        }
-
-        /* Very small screens */
-        @media (max-width: 320px) {
-            .container {
-                padding: 10px;
-            }
-
-            h1 {
-                font-size: 16px;
-            }
-
-            button {
-                padding: 10px 12px;
-                font-size: 12px;
-                min-width: 80px;
-            }
-
-            .category-option {
-                font-size: 12px;
-                padding: 8px;
-            }
-        }
+        .status { text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
@@ -400,35 +74,29 @@
             <label>Select Waste Category:</label>
             <div class="category-grid">
                 <div class="category-option" data-category="cardboard">
-                    <input type="radio" name="category" value="cardboard" id="cardboard">
-                    <label for="cardboard">📦 Cardboard</label>
+                    <input type="radio" name="category"> 📦 Cardboard
                 </div>
                 <div class="category-option" data-category="glass">
-                    <input type="radio" name="category" value="glass" id="glass">
-                    <label for="glass">🍶 Glass</label>
+                    <input type="radio" name="category"> 🍶 Glass
                 </div>
                 <div class="category-option" data-category="metal">
-                    <input type="radio" name="category" value="metal" id="metal">
-                    <label for="metal">🥫 Can(Лааз)</label>
+                    <input type="radio" name="category"> 🥫 Metal (Can)
                 </div>
                 <div class="category-option" data-category="paper">
-                    <input type="radio" name="category" value="paper" id="paper">
-                    <label for="paper">📄 Paper</label>
+                    <input type="radio" name="category"> 📄 Paper
                 </div>
                 <div class="category-option" data-category="plastic">
-                    <input type="radio" name="category" value="plastic" id="plastic">
-                    <label for="plastic">🧴 Plastic bottle(PET) </label>
+                    <input type="radio" name="category"> 🧴 Plastic Bottle
                 </div>
                 <div class="category-option" data-category="trash">
-                    <input type="radio" name="category" value="trash" id="trash">
-                    <label for="trash">🗑️ Organic waste</label>
+                    <input type="radio" name="category"> 🗑 Organic Waste
                 </div>
             </div>
         </div>
 
         <div class="camera-section">
             <video id="video" autoplay muted playsinline></video>
-            <canvas id="canvas"></canvas>
+            <canvas id="canvas" style="display:none;"></canvas>
         </div>
 
         <div class="button-group">
@@ -436,348 +104,122 @@
             <button id="capturePhoto" disabled>Capture Photo</button>
         </div>
 
-        <div class="preview-section">
-            <img id="photoPreview" class="hidden" alt="Captured photo preview">
-        </div>
-
-        <div class="auto-upload-section">
-            <label>Auto-upload after capture:</label>
-            <div class="toggle-switch" id="autoUploadToggle"></div>
-        </div>
+        <img id="photoPreview" class="hidden">
 
         <div class="button-group">
             <button id="sendData" disabled>Send to Dataset</button>
         </div>
 
         <div id="status"></div>
-
-        <div class="upload-history">
-            <h3>Recent Uploads</h3>
-            <div id="uploadList">
-                <p class="no-uploads">No uploads yet</p>
-            </div>
-        </div>
     </div>
 
-    <script>
-        let stream = null;
-        let capturedImageData = null;
-        let selectedCategory = null;
-        let autoUpload = false;
-        let uploadHistory = JSON.parse(localStorage.getItem('uploadHistory')) || [];
+<script>
+let stream = null;
+let selectedCategory = null;
+let capturedImageData = null;
 
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const photoPreview = document.getElementById('photoPreview');
-        const startCameraBtn = document.getElementById('startCamera');
-        const capturePhotoBtn = document.getElementById('capturePhoto');
-        const sendDataBtn = document.getElementById('sendData');
-        const statusDiv = document.getElementById('status');
-        const autoUploadToggle = document.getElementById('autoUploadToggle');
-        const uploadList = document.getElementById('uploadList');
-        const ctx = canvas.getContext('2d');
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const capturePhotoBtn = document.getElementById("capturePhoto");
+const sendDataBtn = document.getElementById("sendData");
+const photoPreview = document.getElementById("photoPreview");
 
-        // Category selection handling
-        document.querySelectorAll('.category-option').forEach(option => {
-            option.addEventListener('click', function() {
-                // Remove previous selection
-                document.querySelectorAll('.category-option').forEach(opt => {
-                    opt.classList.remove('selected');
-                });
+// CATEGORY SELECT
+document.querySelectorAll(".category-option").forEach(option => {
+    option.addEventListener("click", () => {
+        document.querySelectorAll(".category-option").forEach(o => o.classList.remove("selected"));
+        option.classList.add("selected");
+        selectedCategory = option.dataset.category;
+        updateSendButton();
+    });
+});
 
-                // Add selection to clicked option
-                this.classList.add('selected');
-                const radio = this.querySelector('input[type="radio"]');
-                radio.checked = true;
-                selectedCategory = radio.value;
+// START CAMERA
+document.getElementById("startCamera").onclick = async () => {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        capturePhotoBtn.disabled = false;
+        showStatus("Camera started!", "success");
+    } catch (err) {
+        showStatus("Camera error. Check permissions.", "error");
+    }
+};
 
-                updateSendButton();
-            });
-        });
+// CAPTURE PHOTO
+capturePhotoBtn.onclick = () => {
+    canvas.width = 512;
+    canvas.height = 384;
+    ctx.drawImage(video, 0, 0, 512, 384);
+    capturedImageData = canvas.toDataURL("image/jpeg", 0.8);
+    photoPreview.src = capturedImageData;
+    photoPreview.style.display = "block";
+    updateSendButton();
+    showStatus("Photo captured!", "success");
+};
 
-        // Auto-upload toggle functionality
-        autoUploadToggle.addEventListener('click', () => {
-            autoUpload = !autoUpload;
-            autoUploadToggle.classList.toggle('active', autoUpload);
-            localStorage.setItem('autoUpload', JSON.stringify(autoUpload));
-        });
+// FRONTEND → BACKEND UPLOAD
+async function uploadToServer(imageDataUrl, category) {
+    const blob = dataURLtoBlob(imageDataUrl);
+    const form = new FormData();
+    form.append("image", blob, `${category}.jpg`);
+    form.append("category", category);
 
-        // Initialize auto-upload toggle state
-        const savedAutoUpload = JSON.parse(localStorage.getItem('autoUpload'));
-        if (savedAutoUpload !== null) {
-            autoUpload = savedAutoUpload;
-            autoUploadToggle.classList.toggle('active', autoUpload);
-        }
+    const resp = await fetch("https://YOUR_VERCEL_URL/api/upload", {
+        method: "POST",
+        headers: { "x-api-key": "YOUR_API_KEY" },
+        body: form
+    });
 
-        // Initialize upload history display
-        updateUploadHistory();
+    if (!resp.ok) {
+        const err = await resp.json().catch(()=>({error:"Upload failed"}));
+        throw new Error(err.error || "Upload failed");
+    }
+    return resp.json();
+}
 
-        // Camera functionality with mobile-optimized resolution
-        startCameraBtn.addEventListener('click', async () => {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment',
-                        width: { ideal: 512 },
-                        height: { ideal: 384 }
-                    }
-                });
-                video.srcObject = stream;
-                startCameraBtn.textContent = 'Camera Active';
-                startCameraBtn.disabled = true;
-                capturePhotoBtn.disabled = false;
-                showStatus('Camera started successfully!', 'success');
-            } catch (err) {
-                console.error('Error accessing camera:', err);
-                showStatus('Error accessing camera. Please check permissions.', 'error');
-            }
-        });
+function dataURLtoBlob(dataurl) {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8 = new Uint8Array(n);
+    while(n--) u8[n] = bstr.charCodeAt(n);
+    return new Blob([u8], {type:mime});
+}
 
-        capturePhotoBtn.addEventListener('click', () => {
-            // Set canvas to target resolution
-            canvas.width = 512;
-            canvas.height = 384;
-            
-            // Draw video frame to canvas with proper scaling
-            const videoAspect = video.videoWidth / video.videoHeight;
-            const targetAspect = 512 / 384;
-            
-            let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
-            
-            if (videoAspect > targetAspect) {
-                // Video is wider, fit to height
-                drawHeight = 384;
-                drawWidth = 384 * videoAspect;
-                offsetX = (512 - drawWidth) / 2;
-            } else {
-                // Video is taller, fit to width
-                drawWidth = 512;
-                drawHeight = 512 / videoAspect;
-                offsetY = (384 - drawHeight) / 2;
-            }
-            
-            ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+// SEND DATA
+sendDataBtn.onclick = async () => {
+    if (!capturedImageData || !selectedCategory) {
+        showStatus("Capture a photo and select a category.", "error");
+        return;
+    }
+    sendDataBtn.disabled = true;
+    sendDataBtn.textContent = "Uploading...";
 
-            capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
-            photoPreview.src = capturedImageData;
-            photoPreview.classList.remove('hidden');
+    try {
+        await uploadToServer(capturedImageData, selectedCategory);
+        showStatus("Uploaded to dataset!", "success");
+    } catch (err) {
+        showStatus("Upload failed: " + err.message, "error");
+    }
 
-            updateSendButton();
-            showStatus('Photo captured! Ready to send.', 'success');
+    sendDataBtn.textContent = "Send to Dataset";
+    sendDataBtn.disabled = false;
+};
 
-            // If auto-upload is enabled, automatically upload the photo
-            if (autoUpload && capturedImageData && selectedCategory) {
-                setTimeout(() => {
-                    sendDataBtn.click();
-                }, 1000); // Small delay to show the captured photo first
-            }
-        });
+// HELPER FUNCTIONS
+function updateSendButton() {
+    sendDataBtn.disabled = !(selectedCategory && capturedImageData);
+}
 
-        sendDataBtn.addEventListener('click', async () => {
-            if (!capturedImageData || !selectedCategory) {
-                showStatus('Please select a category and capture a photo.', 'error');
-                return;
-            }
+function showStatus(msg, type) {
+    const s = document.getElementById("status");
+    s.className = "status " + type;
+    s.textContent = msg;
+}
+</script>
 
-            sendDataBtn.disabled = true;
-            sendDataBtn.textContent = 'Uploading...';
-
-            try {
-                const result = await uploadToGitHub(capturedImageData, selectedCategory);
-                showStatus('Photo successfully uploaded to GitHub dataset!', 'success');
-                
-                // Add to upload history
-                const uploadRecord = {
-                    id: Date.now(),
-                    category: selectedCategory,
-                    timestamp: new Date().toISOString(),
-                    status: 'success',
-                    downloadUrl: result.download_url
-                };
-                
-                uploadHistory.unshift(uploadRecord); // Add to beginning of array
-                if (uploadHistory.length > 10) {
-                    uploadHistory = uploadHistory.slice(0, 10); // Keep only last 10 uploads
-                }
-                
-                localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
-                updateUploadHistory();
-                
-                resetForNextPhoto();
-            } catch (error) {
-                console.error('Upload error:', error);
-                showStatus(`Upload failed: ${error.message}`, 'error');
-                
-                // Add failed upload to history
-                const uploadRecord = {
-                    id: Date.now(),
-                    category: selectedCategory,
-                    timestamp: new Date().toISOString(),
-                    status: 'error',
-                    error: error.message
-                };
-                
-                uploadHistory.unshift(uploadRecord);
-                if (uploadHistory.length > 10) {
-                    uploadHistory = uploadHistory.slice(0, 10);
-                }
-                
-                localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
-                updateUploadHistory();
-                
-                sendDataBtn.disabled = false;
-                sendDataBtn.textContent = 'Send to Dataset';
-            }
-        });
-
-        function updateSendButton() {
-            sendDataBtn.disabled = !(capturedImageData && selectedCategory);
-        }
-
-        function showStatus(message, type) {
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.classList.remove('hidden');
-
-            setTimeout(() => {
-                statusDiv.classList.add('hidden');
-            }, 5000);
-        }
-
-        function resetForNextPhoto() {
-            capturedImageData = null;
-            photoPreview.classList.add('hidden');
-            photoPreview.src = '';
-
-            // Keep camera running but reset capture state
-            capturePhotoBtn.disabled = false;
-            sendDataBtn.disabled = false;
-            sendDataBtn.textContent = 'Send to Dataset';
-            updateSendButton();
-        }
-
-        function updateUploadHistory() {
-            if (uploadHistory.length === 0) {
-                uploadList.innerHTML = '<p class="no-uploads">No uploads yet</p>';
-                return;
-            }
-
-            uploadList.innerHTML = '';
-            uploadHistory.forEach(upload => {
-                const uploadItem = document.createElement('div');
-                uploadItem.className = 'upload-item';
-                
-                const uploadInfo = document.createElement('div');
-                uploadInfo.className = 'upload-info';
-                
-                const uploadCategory = document.createElement('div');
-                uploadCategory.className = 'upload-category';
-                uploadCategory.textContent = upload.category.charAt(0).toUpperCase() + upload.category.slice(1);
-                
-                const uploadTime = document.createElement('div');
-                uploadTime.className = 'upload-time';
-                const date = new Date(upload.timestamp);
-                uploadTime.textContent = date.toLocaleString();
-                
-                uploadInfo.appendChild(uploadCategory);
-                uploadInfo.appendChild(uploadTime);
-                
-                const uploadStatus = document.createElement('div');
-                uploadStatus.className = `upload-status ${upload.status}`;
-                uploadStatus.textContent = upload.status === 'success' ? '✓ Success' : '✗ Failed';
-                
-                uploadItem.appendChild(uploadInfo);
-                uploadItem.appendChild(uploadStatus);
-                
-                uploadList.appendChild(uploadItem);
-            });
-        }
-
-        async function getDefaultBranch(repo, token) {
-            try {
-                const response = await fetch(`https://api.github.com/repos/${repo}`, {
-                    headers: { 'Authorization': `token ${token}` }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.default_branch || 'main';
-                }
-                return 'main'; // fallback
-            } catch (error) {
-                console.warn('Could not detect default branch, using main:', error);
-                return 'main';
-            }
-        }
-
-        async function uploadToGitHub(imageData, category) {
-            // GitHub API configuration
-            const token = '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';
-            const repo = 'sumiyajid/RecycleBinDataCollection';
-            const folderPath = 'Dataset';
-            
-            // Use the default token without prompting
-            const finalToken = token;
-
-            if (!finalToken) {
-                throw new Error('GitHub token is required for upload');
-            }
-
-            // Get the repository's default branch
-            const defaultBranch = await getDefaultBranch(repo, finalToken);
-
-            // Security: Validate and sanitize category
-            const allowedCategories = ['cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash'];
-            if (!allowedCategories.includes(category)) {
-                throw new Error('Invalid category for upload');
-            }
-
-            // Create filename with timestamp
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const filename = `${category}_${timestamp}.jpg`;
-            
-            // Ensure path is within allowed directory structure
-            const sanitizedPath = folderPath.replace(/[^a-zA-Z0-9\/\-_]/g, '');
-            const imagePath = `${sanitizedPath}/${category}/${filename}`;
-
-            // Convert data URL to base64
-            const base64Data = imageData.split(',')[1];
-            
-            // Upload image with restricted path
-            const imageResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${imagePath}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${finalToken}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: `Add ${category} waste image: ${timestamp}`,
-                    content: base64Data,
-                    branch: defaultBranch,
-                    committer: {
-                        name: 'Waste Dataset Collector',
-                        email: 'dataset-collector@example.com'
-                    }
-                })
-            });
-
-            if (!imageResponse.ok) {
-                const error = await imageResponse.json();
-                console.error('GitHub API Error:', error);
-                throw new Error(error.message || 'GitHub image upload failed');
-            }
-
-            const result = await imageResponse.json();
-            console.log('File uploaded successfully:', result.download_url);
-            return result;
-        }
-
-        // Handle page unload to stop camera
-        window.addEventListener('beforeunload', () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        });
-    </script>
 </body>
 </html>
