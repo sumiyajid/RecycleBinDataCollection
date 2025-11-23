@@ -85,7 +85,6 @@
     <div class="category-selection" aria-label="Waste category selection">
       <label for="categories">Select Waste Category:</label>
       <div id="categories" class="category-grid">
-        <!-- Use real radio inputs for accessibility and value binding -->
         <label class="category-option" data-category="cardboard">
           <input type="radio" name="category" value="cardboard" aria-label="Cardboard"> 📦 Cardboard
         </label>
@@ -108,7 +107,7 @@
     </div>
 
     <div class="camera-section">
-      <video id="video" autoplay muted playsinline aria-label="Camera preview"></video>
+      <video id="video" autoplay muted playsinline aria-label="Camera preview" tabindex="0"></video>
       <canvas id="canvas" style="display:none;"></canvas>
       <img id="photoPreview" alt="Captured photo preview" style="display:none;">
       <small class="hint">Tap "Start Camera" then "Capture Photo". Use the category you selected.</small>
@@ -127,6 +126,13 @@
   </div>
 
 <script>
+  // Local uploaded file URL (for tooling): sandbox:/mnt/data/3758a0db-c8b7-4e4b-a405-23444ee17162.png
+
+  // ========== CONFIGURE THESE =============
+  const UPLOAD_URL = "https://gmit.life/api/upload"; // correct endpoint on your domain
+  const API_KEY = "ajf2j3f92jf923jf92jf9"; // <-- replace this string with your API key when testing
+  // =========================================
+
   // Variables
   let stream = null;
   let selectedCategory = null;
@@ -150,7 +156,6 @@
   categoryOptions.forEach(label => {
     const input = label.querySelector('input[type="radio"]');
     label.addEventListener('click', (e) => {
-      // If clicking label, the radio will become checked; sync UI classes and selectedCategory
       categoryOptions.forEach(l => l.classList.remove('selected'));
       label.classList.add('selected');
       selectedCategory = input.value;
@@ -174,7 +179,6 @@
   // START CAMERA
   startBtn.addEventListener('click', async () => {
     if (stream) {
-      // Toggle off if already started
       stopStream();
       startBtn.textContent = 'Start Camera';
       captureBtn.disabled = true;
@@ -182,7 +186,6 @@
       return;
     }
     try {
-      // Prefer environment-facing camera on mobile
       stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 960 } },
         audio: false
@@ -214,15 +217,12 @@
       showStatus('Camera is not active.', 'error');
       return;
     }
-    // Use fixed capture size but match aspect ratio of video element for predictability
     const captureW = 1024;
     const captureH = Math.round(captureW * (video.videoHeight / video.videoWidth || (3/4)));
     canvas.width = captureW;
     canvas.height = captureH;
     const ctx = canvas.getContext('2d');
-    // draw current frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    // Convert to JPEG with quality
     capturedImageData = canvas.toDataURL('image/jpeg', 0.85);
     photoPreview.src = capturedImageData;
     photoPreview.style.display = 'block';
@@ -254,33 +254,35 @@
     form.append('image', blob, makeFilename(category));
     form.append('category', category);
 
-    // Adjust this endpoint to your backend. Use HTTPS and CORS configured server-side.
-    const UPLOAD_URL = 'https://YOUR_VERCEL_URL/api/upload';
-
-    // Simple fetch with AbortController for timeout
+    // AbortController for timeout
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30s
 
     try {
-      const resp = await fetch(https://recycle-bin-data-collection-fl9xim1gm-sumiyajids-projects.vercel.app/, {
+      const resp = await fetch(UPLOAD_URL, {
         method: 'POST',
         headers: {
-          // keep authentication secure - do not hardcode keys in client in production
-          // 'x-api-key': 'API_KEY'
+          'x-api-key': API_KEY
+          // NOTE: Do NOT set 'Content-Type' here when sending FormData.
         },
         body: form,
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'omit'
       });
+
       clearTimeout(timeout);
+
       if (!resp.ok) {
-        const text = await resp.text().catch(()=>null);
-        // try JSON
-        let json = null;
-        try { json = JSON.parse(text); } catch(e){}
-        const errMsg = (json && (json.error || json.message)) || text || resp.statusText;
-        throw new Error(errMsg || 'Upload failed');
+        // Try JSON first, fallback to text
+        let bodyText = await resp.text().catch(() => '');
+        try {
+          const json = JSON.parse(bodyText);
+          bodyText = json.error || json.message || bodyText;
+        } catch (e) { /* not json */ }
+        throw new Error(bodyText || resp.statusText || `Upload failed (${resp.status})`);
       }
-      return resp.json();
+
+      return await resp.json();
     } catch (err) {
       if (err.name === 'AbortError') throw new Error('Upload timed out');
       throw err;
@@ -300,6 +302,7 @@
     try {
       const result = await uploadToServer(capturedImageData, selectedCategory);
       showStatus('Uploaded to dataset!', 'success');
+      console.log('Upload result:', result);
       // Optionally clear preview & selection after successful upload:
       // capturedImageData = null;
       // photoPreview.style.display = 'none';
@@ -307,8 +310,6 @@
       // document.querySelectorAll('input[name="category"]').forEach(i => i.checked = false);
       // selectedCategory = null;
       // updateSendButton();
-
-      console.log('Upload result:', result);
     } catch (err) {
       console.error(err);
       showStatus('Upload failed: ' + (err.message || 'Unknown error'), 'error');
@@ -323,6 +324,18 @@
     if (e.key === 'Enter' && !captureBtn.disabled) captureBtn.click();
   });
 
+  // Expose a helper in console to set the API key (handy for local dev)
+  // Example: window.setApiKey('my-secret-key')
+  window.setApiKey = (key) => {
+    if (!key) return;
+    console.info('API key updated in page (not stored).');
+    window.API_KEY_OVERRIDE = key;
+  };
+
+  // If window.API_KEY_OVERRIDE is set (via console), prefer that over constant
+  Object.defineProperty(window, 'API_KEY', {
+    get: () => window.API_KEY_OVERRIDE || API_KEY
+  });
 </script>
 </body>
 </html>
