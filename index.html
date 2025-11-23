@@ -1,225 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recycle Waste Dataset Collection</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
-        }
-        .container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            padding: 20px;
-            max-width: 480px;
-            width: 100%;
-        }
-        h1 { text-align: center; color: #2E7D32; margin-bottom: 20px; font-size: 20px; }
-        .category-selection { margin-bottom: 20px; }
-        .category-selection label {
-            display: block; margin-bottom: 10px; font-weight: bold; color: #333; font-size: 14px;
-        }
-        .category-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        .category-option {
-            display: flex;
-            align-items: center;
-            padding: 8px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 12px;
-        }
-        .category-option:hover { border-color: #4CAF50; background-color: #f5f5f5; }
-        .category-option.selected { border-color: #4CAF50; background-color: #e8f5e8; }
-        .camera-section { text-align: center; margin-bottom: 20px; }
-        #video { width: 100%; aspect-ratio: 4/3; border: 2px solid #ddd; border-radius: 10px; object-fit: cover; }
-        button {
-            padding: 10px 20px; border: none; border-radius: 25px; font-size: 14px;
-            font-weight: bold; cursor: pointer; transition: 0.3s; min-width: 120px;
-        }
-        #startCamera { background: #4CAF50; color: white; }
-        #capturePhoto { background: #2196F3; color: white; }
-        #sendData { background: #FF9800; color: white; }
-        .button-group {
-            display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;
-        }
-        #photoPreview {
-            max-width: 100%; max-height: 200px; border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .status { text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; }
-        .status.success { background: #d4edda; color: #155724; }
-        .status.error { background: #f8d7da; color: #721c24; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Recycle Waste Dataset Collection</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg,#4CAF50,#45a049);
+      min-height: 100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .container {
+      width:100%;
+      max-width:520px;
+      background:#fff;
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.18);
+    }
+    h1 { text-align:center; color:#2E7D32; margin-bottom:14px; font-size:20px; }
+    .category-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:14px; }
+    .category-option {
+      display:flex; align-items:center; gap:8px;
+      padding:8px; border:2px solid #ddd; border-radius:8px; cursor:pointer;
+      transition:all .18s;
+      font-size:13px;
+    }
+    .category-option:hover { border-color:#4CAF50; background:#f5f5f5; }
+    .category-option.selected { border-color:#4CAF50; background:#e8f5e8; }
+    .camera { text-align:center; margin-bottom:12px; }
+    video { width:100%; aspect-ratio:4/3; border-radius:8px; border:2px solid #ddd; object-fit:cover; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:12px 0; }
+    button {
+      padding:10px 18px; border:none; border-radius:22px; font-weight:700; cursor:pointer;
+      min-width:120px;
+    }
+    #startCamera { background:#4CAF50; color:#fff; }
+    #capturePhoto { background:#2196F3; color:#fff; }
+    #sendData { background:#FF9800; color:#fff; }
+    .preview { text-align:center; margin-bottom:10px; }
+    img#photoPreview { max-width:100%; max-height:220px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+    .auto-upload { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:10px; }
+    .toggle { width:44px; height:24px; background:#ccc; border-radius:24px; position:relative; cursor:pointer; }
+    .toggle.active { background:#4CAF50; }
+    .toggle::after { content:""; width:18px; height:18px; background:#fff; border-radius:50%; position:absolute; top:3px; left:3px; transition:transform .18s; }
+    .toggle.active::after { transform:translateX(20px); }
+    .status { text-align:center; padding:8px; border-radius:6px; margin-bottom:12px; font-size:14px; display:none; }
+    .status.success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; display:block; }
+    .status.error { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; display:block; }
+    .upload-history { margin-top:10px; }
+    #uploadList { max-height:140px; overflow:auto; border:1px solid #eee; padding:8px; border-radius:8px; background:#fafafa; }
+    .upload-item { display:flex; justify-content:space-between; align-items:center; padding:6px; margin-bottom:6px; background:#fff; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05); font-size:13px; }
+    .upload-item .meta { display:flex; flex-direction:column; gap:4px; }
+    .small { font-size:12px; color:#666; }
+    @media (max-width:480px) {
+      .category-grid { grid-template-columns:1fr; }
+      button { min-width:100px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🌱 Recycle Waste Dataset Collection</h1>
+  <div class="container">
+    <h1>🌱 Recycle Waste Dataset Collection</h1>
 
-        <div class="category-selection">
-            <label>Select Waste Category:</label>
-            <div class="category-grid">
-                <div class="category-option" data-category="cardboard">
-                    <input type="radio" name="category"> 📦 Cardboard
-                </div>
-                <div class="category-option" data-category="glass">
-                    <input type="radio" name="category"> 🍶 Glass
-                </div>
-                <div class="category-option" data-category="metal">
-                    <input type="radio" name="category"> 🥫 Metal (Can)
-                </div>
-                <div class="category-option" data-category="paper">
-                    <input type="radio" name="category"> 📄 Paper
-                </div>
-                <div class="category-option" data-category="plastic">
-                    <input type="radio" name="category"> 🧴 Plastic Bottle
-                </div>
-                <div class="category-option" data-category="trash">
-                    <input type="radio" name="category"> 🗑 Organic Waste
-                </div>
-            </div>
-        </div>
-
-        <div class="camera-section">
-            <video id="video" autoplay muted playsinline></video>
-            <canvas id="canvas" style="display:none;"></canvas>
-        </div>
-
-        <div class="button-group">
-            <button id="startCamera">Start Camera</button>
-            <button id="capturePhoto" disabled>Capture Photo</button>
-        </div>
-
-        <img id="photoPreview" class="hidden">
-
-        <div class="button-group">
-            <button id="sendData" disabled>Send to Dataset</button>
-        </div>
-
-        <div id="status"></div>
+    <div class="category-selection">
+      <label style="display:block; font-weight:700; margin-bottom:8px;">Select Waste Category:</label>
+      <div class="category-grid">
+        <div class="category-option" data-category="cardboard"><input type="radio" name="cat" style="display:none"> 📦 Cardboard</div>
+        <div class="category-option" data-category="glass"><input type="radio" name="cat" style="display:none"> 🍶 Glass</div>
+        <div class="category-option" data-category="metal"><input type="radio" name="cat" style="display:none"> 🥫 Metal (Can)</div>
+        <div class="category-option" data-category="paper"><input type="radio" name="cat" style="display:none"> 📄 Paper</div>
+        <div class="category-option" data-category="plastic"><input type="radio" name="cat" style="display:none"> 🧴 Plastic Bottle</div>
+        <div class="category-option" data-category="trash"><input type="radio" name="cat" style="display:none"> 🗑 Organic Waste</div>
+      </div>
     </div>
 
-<script>
-let stream = null;
-let selectedCategory = null;
-let capturedImageData = null;
+    <div class="camera">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="canvas" style="display:none;"></canvas>
+    </div>
 
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const capturePhotoBtn = document.getElementById("capturePhoto");
-const sendDataBtn = document.getElementById("sendData");
-const photoPreview = document.getElementById("photoPreview");
+    <div class="controls">
+      <button id="startCamera">Start Camera</button>
+      <button id="capturePhoto" disabled>Capture Photo</button>
+      <button id="sendData" disabled>Send to Dataset</button>
+    </div>
 
-// CATEGORY SELECT
-document.querySelectorAll(".category-option").forEach(option => {
-    option.addEventListener("click", () => {
-        document.querySelectorAll(".category-option").forEach(o => o.classList.remove("selected"));
-        option.classList.add("selected");
-        selectedCategory = option.dataset.category;
-        updateSendButton();
-    });
-});
+    <div class="auto-upload">
+      <div style="font-size:14px;">Auto-upload after capture</div>
+      <div id="autoToggle" class="toggle" title="Toggle auto-upload"></div>
+    </div>
 
-// START CAMERA
-document.getElementById("startCamera").onclick = async () => {
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    <div class="preview">
+      <img id="photoPreview" style="display:none;" alt="Preview">
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="upload-history">
+      <label style="display:block; font-weight:700; margin-bottom:8px; text-align:center;">Recent Uploads</label>
+      <div id="uploadList"><div class="small" style="text-align:center; font-style:italic;">No uploads yet</div></div>
+    </div>
+  </div>
+
+  <script>
+    // ======= CONFIG - REPLACE THESE BEFORE DEPLOYING =======
+    // Put your Vercel public URL (project). Do NOT include trailing slash.
+    const VERCEL_UPLOAD_URL = "https://YOUR_PROJECT.vercel.app/api/upload";
+    // Frontend API key (not GitHub token). Replace with the API_KEY you set in Vercel env.
+    const API_KEY = "YOUR_API_KEY";
+    // ======================================================
+
+    // Basic state
+    let stream = null;
+    let selectedCategory = null;
+    let capturedImageData = null;
+    let autoUpload = JSON.parse(localStorage.getItem('autoUpload') || 'false');
+    let uploadHistory = JSON.parse(localStorage.getItem('uploadHistory') || '[]');
+
+    // Elements
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startCameraBtn = document.getElementById('startCamera');
+    const capturePhotoBtn = document.getElementById('capturePhoto');
+    const sendDataBtn = document.getElementById('sendData');
+    const photoPreview = document.getElementById('photoPreview');
+    const autoToggle = document.getElementById('autoToggle');
+    const statusDiv = document.getElementById('status');
+    const uploadList = document.getElementById('uploadList');
+
+    // Init UI state
+    function init() {
+      // categories
+      document.querySelectorAll('.category-option').forEach(o => {
+        o.addEventListener('click', () => {
+          document.querySelectorAll('.category-option').forEach(x => x.classList.remove('selected'));
+          o.classList.add('selected');
+          selectedCategory = o.dataset.category;
+          updateButtons();
+        });
+      });
+
+      // auto toggle
+      if (autoUpload) autoToggle.classList.add('active');
+      autoToggle.addEventListener('click', () => {
+        autoUpload = !autoUpload;
+        if (autoUpload) autoToggle.classList.add('active'); else autoToggle.classList.remove('active');
+        localStorage.setItem('autoUpload', JSON.stringify(autoUpload));
+      });
+
+      // upload history
+      renderUploadHistory();
+    }
+
+    // Camera start
+    startCameraBtn.addEventListener('click', async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 512 }, height: { ideal: 384 } },
+          audio: false
+        });
         video.srcObject = stream;
+        startCameraBtn.disabled = true;
+        startCameraBtn.textContent = 'Camera Active';
         capturePhotoBtn.disabled = false;
-        showStatus("Camera started!", "success");
-    } catch (err) {
-        showStatus("Camera error. Check permissions.", "error");
-    }
-};
-
-// CAPTURE PHOTO
-capturePhotoBtn.onclick = () => {
-    canvas.width = 512;
-    canvas.height = 384;
-    ctx.drawImage(video, 0, 0, 512, 384);
-    capturedImageData = canvas.toDataURL("image/jpeg", 0.8);
-    photoPreview.src = capturedImageData;
-    photoPreview.style.display = "block";
-    updateSendButton();
-    showStatus("Photo captured!", "success");
-};
-
-// FRONTEND → BACKEND UPLOAD
-async function uploadToServer(imageDataUrl, category) {
-    const blob = dataURLtoBlob(imageDataUrl);
-    const form = new FormData();
-    form.append("image", blob, `${category}.jpg`);
-    form.append("category", category);
-
-    const resp = await fetch("https://YOUR_VERCEL_URL/api/upload", {
-        method: "POST",
-        headers: { "x-api-key": "YOUR_API_KEY" },
-        body: form
+        showStatus('Camera started', 'success', 2500);
+      } catch (err) {
+        console.error(err);
+        showStatus('Cannot access camera. Check permissions.', 'error');
+      }
     });
 
-    if (!resp.ok) {
-        const err = await resp.json().catch(()=>({error:"Upload failed"}));
-        throw new Error(err.error || "Upload failed");
+    // Capture
+    capturePhotoBtn.addEventListener('click', () => {
+      // canvas size
+      canvas.width = 512;
+      canvas.height = 384;
+
+      // draw with aspect fit
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (vw && vh) {
+        const videoAspect = vw / vh;
+        const targetAspect = 512 / 384;
+        let sx=0, sy=0, sWidth=vw, sHeight=vh;
+        if (videoAspect > targetAspect) { // video wider
+          sWidth = vh * targetAspect;
+          sx = (vw - sWidth)/2;
+        } else { // video taller
+          sHeight = vw / targetAspect;
+          sy = (vh - sHeight)/2;
+        }
+        ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, 512, 384);
+      } else {
+        ctx.drawImage(video, 0, 0, 512, 384);
+      }
+
+      capturedImageData = canvas.toDataURL('image/jpeg', 0.85);
+      photoPreview.src = capturedImageData;
+      photoPreview.style.display = 'block';
+      updateButtons();
+      showStatus('Photo captured', 'success', 1800);
+
+      if (autoUpload && selectedCategory) {
+        // small delay so preview appears
+        setTimeout(() => sendDataBtn.click(), 700);
+      }
+    });
+
+    // Upload to server
+    async function uploadToServer(dataUrl, category) {
+      if (!VERCEL_UPLOAD_URL || VERCEL_UPLOAD_URL.includes('YOUR_PROJECT')) {
+        throw new Error('VERCEL_UPLOAD_URL not configured in frontend script.');
+      }
+      if (!API_KEY || API_KEY.includes('YOUR_API_KEY')) {
+        throw new Error('API_KEY not configured in frontend script.');
+      }
+
+      const blob = dataURLtoBlob(dataUrl);
+      const form = new FormData();
+      form.append('image', blob, `${category}.jpg`);
+      form.append('category', category);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+      const resp = await fetch(https://recycle-bin-data-collection.vercel.app/, {
+        method: 'POST',
+        headers: { '3fj023jf023jfoj23jf3o2jf3
+a9s8d7f6a9s8d7f6a9s8d7f6
+Upload-key-29fj29fj29fj
+': API_KEY },
+        body: form,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(()=>null);
+        let errMsg = 'Upload failed';
+        try {
+          const j = JSON.parse(text);
+          errMsg = j.error || j.message || errMsg;
+        } catch(e) {
+          errMsg = text || errMsg;
+        }
+        throw new Error(errMsg);
+      }
+      return resp.json();
     }
-    return resp.json();
-}
 
-function dataURLtoBlob(dataurl) {
-    const arr = dataurl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8 = new Uint8Array(n);
-    while(n--) u8[n] = bstr.charCodeAt(n);
-    return new Blob([u8], {type:mime});
-}
-
-// SEND DATA
-sendDataBtn.onclick = async () => {
-    if (!capturedImageData || !selectedCategory) {
-        showStatus("Capture a photo and select a category.", "error");
+    // Send button handler
+    sendDataBtn.addEventListener('click', async () => {
+      if (!capturedImageData || !selectedCategory) {
+        showStatus('Select a category and capture a photo first.', 'error');
         return;
+      }
+      sendDataBtn.disabled = true;
+      sendDataBtn.textContent = 'Uploading...';
+      try {
+        const result = await uploadToServer(capturedImageData, selectedCategory);
+        const record = {
+          id: Date.now(),
+          category: selectedCategory,
+          timestamp: new Date().toISOString(),
+          status: 'success',
+          commit: result.commit || null,
+          path: result.content ? result.content.path : null
+        };
+        pushHistory(record);
+        showStatus('Upload successful!', 'success', 2500);
+        // reset capture preview but keep camera running
+        capturedImageData = null;
+        photoPreview.style.display = 'none';
+        updateButtons();
+      } catch (err) {
+        console.error('Upload error:', err);
+        const record = {
+          id: Date.now(),
+          category: selectedCategory,
+          timestamp: new Date().toISOString(),
+          status: 'error',
+          error: (err && err.message) ? err.message : 'Upload failed'
+        };
+        pushHistory(record);
+        showStatus('Upload failed: ' + (err.message || ''), 'error', 5000);
+      } finally {
+        sendDataBtn.textContent = 'Send to Dataset';
+        sendDataBtn.disabled = false;
+      }
+    });
+
+    // Helpers
+    function updateButtons() {
+      sendDataBtn.disabled = !(selectedCategory && capturedImageData);
     }
-    sendDataBtn.disabled = true;
-    sendDataBtn.textContent = "Uploading...";
 
-    try {
-        await uploadToServer(capturedImageData, selectedCategory);
-        showStatus("Uploaded to dataset!", "success");
-    } catch (err) {
-        showStatus("Upload failed: " + err.message, "error");
+    function dataURLtoBlob(dataurl) {
+      const parts = dataurl.split(',');
+      const m = parts[0].match(/:(.*?);/);
+      const mime = (m && m[1]) || 'image/jpeg';
+      const bstr = atob(parts[1]);
+      let n = bstr.length;
+      const u8 = new Uint8Array(n);
+      while(n--) u8[n] = bstr.charCodeAt(n);
+      return new Blob([u8], { type: mime });
     }
 
-    sendDataBtn.textContent = "Send to Dataset";
-    sendDataBtn.disabled = false;
-};
+    function showStatus(msg, type = 'success', hideAfterMs = 4000) {
+      statusDiv.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      statusDiv.textContent = msg;
+      statusDiv.style.display = 'block';
+      if (hideAfterMs) setTimeout(()=> { statusDiv.style.display = 'none'; }, hideAfterMs);
+    }
 
-// HELPER FUNCTIONS
-function updateSendButton() {
-    sendDataBtn.disabled = !(selectedCategory && capturedImageData);
-}
+    function pushHistory(rec) {
+      uploadHistory.unshift(rec);
+      if (uploadHistory.length > 12) uploadHistory = uploadHistory.slice(0,12);
+      localStorage.setItem('uploadHistory', JSON.stringify(uploadHistory));
+      renderUploadHistory();
+    }
 
-function showStatus(msg, type) {
-    const s = document.getElementById("status");
-    s.className = "status " + type;
-    s.textContent = msg;
-}
-</script>
+    function renderUploadHistory() {
+      if (!uploadHistory || uploadHistory.length === 0) {
+        uploadList.innerHTML = '<div class="small" style="text-align:center; font-style:italic;">No uploads yet</div>';
+        return;
+      }
+      uploadList.innerHTML = '';
+      for (const u of uploadHistory) {
+        const div = document.createElement('div');
+        div.className = 'upload-item';
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const cat = document.createElement('div');
+        cat.textContent = u.category.charAt(0).toUpperCase() + u.category.slice(1);
+        const ts = document.createElement('div');
+        ts.className = 'small';
+        ts.textContent = new Date(u.timestamp).toLocaleString();
+        meta.appendChild(cat);
+        meta.appendChild(ts);
 
+        const status = document.createElement('div');
+        status.className = 'small';
+        if (u.status === 'success') {
+          status.textContent = '✓ Success';
+          status.style.color = '#2E7D32';
+        } else {
+          status.textContent = '✗ Failed';
+          status.style.color = '#b00020';
+        }
+        div.appendChild(meta);
+        div.appendChild(status);
+        uploadList.appendChild(div);
+      }
+    }
+
+    // Cleanup camera on page close
+    window.addEventListener('beforeunload', () => {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    });
+
+    // Initialize UI
+    init();
+  </script>
 </body>
 </html>
