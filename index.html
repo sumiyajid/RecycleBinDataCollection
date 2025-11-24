@@ -21,6 +21,20 @@
             padding: 10px;
         }
 
+        .logo-section {
+            text-align: center;
+            margin: 20px 0 15px 0;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .logo-section img {
+            max-width: 100%;
+            height: auto;
+            max-height: 100px;
+            object-fit: contain;
+        }
+
         .container {
             background: white;
             border-radius: 15px;
@@ -303,6 +317,14 @@
         }
 
         @media (max-width: 400px) {
+            .logo-section {
+                margin: 15px 0 10px 0;
+            }
+
+            .logo-section img {
+                max-height: 80px;
+            }
+
             .container {
                 padding: 15px;
             }
@@ -324,6 +346,10 @@
     </style>
 </head>
 <body>
+    <div class="logo-section">
+        <img src="logo.png" alt="GDT Logo" id="logoImage">
+    </div>
+
     <div class="container">
         <h1>♻️ Recycle Waste Dataset Collection</h1>
         
